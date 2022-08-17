@@ -2,7 +2,12 @@ AM_CPPFLAGS = \
 	$(LIBDOVECOT_INCLUDE) \
 	$(LIBDOVECOT_PUSH_NOTIFICATION_INCLUDE)
 
-chronos_push_notification_plugin_sources =
+chronos_push_notification_plugin_sources = \
+  chronos-push-notification-plugin.c \
+  chronos-push-notification-driver.c
+
+noinst_HEADERS = \
+  chronos-push-notification-plugin.h
 
 lib22_chronos_push_notification_plugin_la_LDFLAGS = -module -avoid-version
 
