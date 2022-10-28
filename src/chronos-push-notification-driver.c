@@ -259,8 +259,7 @@ chronos_push_notification_driver_begin_txn(
 				      struct push_notification_event_messagenew_config,
 				      1);
 			config->flags = PUSH_NOTIFICATION_MESSAGE_HDR_FROM;
-			push_notification_event_init(dtxn, *events, config,
-						     dconfig->event);
+			push_notification_event_init(dtxn, *events, config);
 		}
 	}
 
