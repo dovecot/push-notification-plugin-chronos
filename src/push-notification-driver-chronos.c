@@ -17,7 +17,7 @@
 #include "push-notification-events.h"
 #include "push-notification-plugin.h"
 #include "push-notification-txn-msg.h"
-#include "settings-parser.h"
+#include "str-parse.h"
 #include "str.h"
 
 /* Default values. */
@@ -181,7 +181,8 @@ push_notification_driver_chronos_init(
 
 	config_item = hash_table_lookup(config->config, (const char *)"timeout");
 	if ((config_item == NULL) ||
-	    (settings_get_time_msecs(config_item, &dconfig->http_timeout_msecs, &error) < 0)) {
+	    (str_parse_get_interval_msecs(config_item, &dconfig->http_timeout_msecs,
+					  &error) < 0)) {
 		if (config_item == NULL) {
 			config_item = "(unset)";
 			error = "";
@@ -195,7 +196,7 @@ push_notification_driver_chronos_init(
 
 	config_item = hash_table_lookup(config->config, (const char *)"msg_max_size");
 	if ((config_item == NULL) ||
-	    (settings_get_size(config_item, &dconfig->msg_max_size, &error) < 0)) {
+	    (str_parse_get_size(config_item, &dconfig->msg_max_size, &error) < 0)) {
 		if (config_item == NULL) {
 			config_item = "(unset)";
 			error = "";
