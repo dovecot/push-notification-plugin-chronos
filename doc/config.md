@@ -3,12 +3,12 @@
 This plugin allows you to send push notification to an endpoint of your choice
 whenever emails with calendar invitations are received.
 
-You need to enable the `chronos_push_notification` plugin. Additionally the
+You need to enable the `push_notification_chronos` plugin. Additionally the
 `notify` and `push_notification` plugins are required to enable general push
 notification support.
 
 ```
-mail_plugins = $mail_plugins notify push_notification chronos_push_notification
+mail_plugins = $mail_plugins notify push_notification push_notification_chronos
 ```
 
 ## Configuration
