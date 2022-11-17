@@ -32,35 +32,35 @@ static const char *const default_events[] = { "MessageNew", NULL };
 #define CHRONOS_PN_ICAL_ATC_SUFFIX "ics"
 
 #define CHRONOS_PN_USER_CONTEXT(obj) \
-	MODULE_CONTEXT(obj, chronos_push_notification_user_module)
+	MODULE_CONTEXT(obj, push_notification_chronos_user_module)
 #define CHRONOS_PN_USER_CONTEXT_REQUIRE(obj) \
-	MODULE_CONTEXT_REQUIRE(obj, chronos_push_notification_user_module)
+	MODULE_CONTEXT_REQUIRE(obj, push_notification_chronos_user_module)
 
-struct chronos_push_notification_driver_user {
+struct push_notification_driver_chronos_user {
 	union mail_user_module_context module_ctx;
 
 	HASH_TABLE(const char *, void *) dedup_table;
 };
 
-static MODULE_CONTEXT_DEFINE_INIT(chronos_push_notification_user_module,
+static MODULE_CONTEXT_DEFINE_INIT(push_notification_chronos_user_module,
 				  &mail_user_module_register);
 
-struct chronos_push_notification_driver_global {
+struct push_notification_driver_chronos_global {
 	struct http_client *http_client;
 	int refcount;
 };
 
-static struct chronos_push_notification_driver_global *chronos_global = NULL;
+static struct push_notification_driver_chronos_global *chronos_global = NULL;
 
-struct chronos_push_notification_driver_http_ctx {
+struct push_notification_driver_chronos_http_ctx {
 	pool_t pool;
 	string_t *json;
 	struct event *event;
 	struct istream *payload;
 };
 
-struct chronos_push_notification_driver_config {
-	struct chronos_push_notification_driver_http_ctx *http_ctx;
+struct push_notification_driver_chronos_config {
+	struct push_notification_driver_chronos_http_ctx *http_ctx;
 	struct event *event;
 	struct http_url *http_url;
 	struct mail_user *user;
@@ -70,33 +70,33 @@ struct chronos_push_notification_driver_config {
 };
 
 static void
-chronos_push_notification_driver_init_chronos_user(struct mail_user *user)
+push_notification_driver_chronos_init_chronos_user(struct mail_user *user)
 {
-	struct chronos_push_notification_driver_user *chronos_user =
+	struct push_notification_driver_chronos_user *chronos_user =
 		CHRONOS_PN_USER_CONTEXT(user);
 
 	chronos_user =
-		p_new(user->pool, struct chronos_push_notification_driver_user, 1);
+		p_new(user->pool, struct push_notification_driver_chronos_user, 1);
 	hash_table_create(&chronos_user->dedup_table,
 			  user->pool, 0, str_hash, strcmp);
-	MODULE_CONTEXT_SET(user, chronos_push_notification_user_module,
+	MODULE_CONTEXT_SET(user, push_notification_chronos_user_module,
 			   chronos_user);
 }
 
 static void
-chronos_push_notification_driver_chronos_user_deinit(struct mail_user *user)
+push_notification_driver_chronos_chronos_user_deinit(struct mail_user *user)
 {
-	struct chronos_push_notification_driver_user *chronos_user =
+	struct push_notification_driver_chronos_user *chronos_user =
 		CHRONOS_PN_USER_CONTEXT_REQUIRE(user);
 	hash_table_destroy(&chronos_user->dedup_table);
 }
 
 static void
-chronos_push_notification_driver_init_global(
-	struct chronos_push_notification_driver_config *config,
+push_notification_driver_chronos_init_global(
+	struct push_notification_driver_chronos_config *config,
 	struct mail_user *user)
 {
-	chronos_global = i_new(struct chronos_push_notification_driver_global, 1);
+	chronos_global = i_new(struct push_notification_driver_chronos_global, 1);
 
 	struct http_client_settings http_set;
 	i_zero(&http_set);
@@ -117,7 +117,7 @@ chronos_push_notification_driver_init_global(
 }
 
 static void
-chronos_push_notification_driver_global_unref(void)
+push_notification_driver_chronos_global_unref(void)
 {
 	if (chronos_global != NULL) {
 		if (chronos_global->http_client != NULL)
@@ -134,17 +134,17 @@ chronos_push_notification_driver_global_unref(void)
 }
 
 static int
-chronos_push_notification_driver_init(
+push_notification_driver_chronos_init(
 	struct push_notification_driver_config *config,
 	struct mail_user *user, pool_t pool, void **context,
 	const char **error_r)
 {
-	chronos_push_notification_driver_init_chronos_user(user);
+	push_notification_driver_chronos_init_chronos_user(user);
 
-	struct chronos_push_notification_driver_config *dconfig;
+	struct push_notification_driver_chronos_config *dconfig;
 	const char *config_item, *error;
 
-	dconfig = p_new(pool, struct chronos_push_notification_driver_config, 1);
+	dconfig = p_new(pool, struct push_notification_driver_chronos_config, 1);
 	dconfig->user = user;
 	dconfig->event = event_create(user->event);
 	event_add_category(dconfig->event, push_notification_get_event_category());
@@ -214,7 +214,7 @@ chronos_push_notification_driver_init(
 		dconfig->msg_max_size);
 
 	if (chronos_global == NULL) {
-		chronos_push_notification_driver_init_global(dconfig, user);
+		push_notification_driver_chronos_init_global(dconfig, user);
 	} else {
 		i_assert(chronos_global->refcount > 0);
 		++chronos_global->refcount;
@@ -226,10 +226,10 @@ chronos_push_notification_driver_init(
 }
 
 static bool
-chronos_push_notification_driver_begin_txn(
+push_notification_driver_chronos_begin_txn(
 	struct push_notification_driver_txn *dtxn)
 {
-	struct chronos_push_notification_driver_config *dconfig =
+	struct push_notification_driver_chronos_config *dconfig =
 		dtxn->duser->context;
 
 	time_t expire = INT_MAX;
@@ -244,7 +244,7 @@ chronos_push_notification_driver_begin_txn(
 		if (strcmp(*events, "MessageNew") == 0) {
 			e_debug(dconfig->event, "Handling %s event", *events);
 
-			/* The chronos push notification plugin is not directly
+			/* The push notification chronos plugin is not directly
 			   accessing any data from the messagenew event, as the
 			   full body needs to be checked for a calendar invite.
 			   Unfortunately not setting any flags would prevent a
@@ -267,7 +267,7 @@ chronos_push_notification_driver_begin_txn(
 }
 
 static bool
-chronos_push_notification_driver_ical_search_part(
+push_notification_driver_chronos_ical_search_part(
 	const struct message_part_data *data)
 {
 	/* Check #1: Look for text/calendar parts. */
@@ -295,7 +295,7 @@ chronos_push_notification_driver_ical_search_part(
 }
 
 static bool
-chronos_push_notification_driver_ical_search_allparts(
+push_notification_driver_chronos_ical_search_allparts(
 	const struct message_part *initial_part)
 {
 	ARRAY(struct message_part) parts;
@@ -306,7 +306,7 @@ chronos_push_notification_driver_ical_search_allparts(
 		const struct message_part *part = array_front(&parts);
 
 		if (part->data != NULL &&
-		    chronos_push_notification_driver_ical_search_part(part->data))
+		    push_notification_driver_chronos_ical_search_part(part->data))
 			return TRUE;
 		if (part->next != NULL)
 			array_push_back(&parts, part->next);
@@ -319,8 +319,8 @@ chronos_push_notification_driver_ical_search_allparts(
 }
 
 static bool
-chronos_push_notification_driver_ical_search(
-	struct chronos_push_notification_driver_config *dconfig,
+push_notification_driver_chronos_ical_search(
+	struct push_notification_driver_chronos_config *dconfig,
 	struct mail *mail)
 {
 	struct message_part *all_parts;
@@ -345,14 +345,14 @@ chronos_push_notification_driver_ical_search(
 
 	/* Parts now have bodystructure information populated. This info is
 	 * contained in each part's context struct member. */
-	bool has_ical = chronos_push_notification_driver_ical_search_allparts(all_parts);
+	bool has_ical = push_notification_driver_chronos_ical_search_allparts(all_parts);
 	pool_unref(&bodystructure_parse_pool);
 	return has_ical;
 }
 
 static void
-chronos_push_notification_driver_handle_mail_error(
-	struct chronos_push_notification_driver_config *dconfig,
+push_notification_driver_chronos_handle_mail_error(
+	struct push_notification_driver_chronos_config *dconfig,
 	struct mail *mail, uint32_t mail_uid, const char *prefix)
 {
 	enum mail_error error;
@@ -365,14 +365,14 @@ chronos_push_notification_driver_handle_mail_error(
 }
 
 static bool
-chronos_push_notification_driver_read_mail_body(
+push_notification_driver_chronos_read_mail_body(
 	struct mailbox_transaction_context *t,
-	struct chronos_push_notification_driver_config *dconfig,
+	struct push_notification_driver_chronos_config *dconfig,
 	uint32_t mail_uid, string_t **body)
 {
 	struct mail *mail = mail_alloc(t, MAIL_FETCH_STREAM_BODY, NULL);
 	if (!mail_set_uid(mail, mail_uid)) {
-		chronos_push_notification_driver_handle_mail_error(
+		push_notification_driver_chronos_handle_mail_error(
 			dconfig, mail, mail_uid,
 			"Unable to fetch email with uid");
 		mail_free(&mail);
@@ -380,11 +380,11 @@ chronos_push_notification_driver_read_mail_body(
 	}
 
 	/* Try to deduplicate messages by Message-ID header if it exists. */
-	struct chronos_push_notification_driver_user *chronos_user =
+	struct push_notification_driver_chronos_user *chronos_user =
 		CHRONOS_PN_USER_CONTEXT_REQUIRE(dconfig->user);
 	const char *key;
 	if (mail_get_first_header(mail, "Message-ID", &key) < 0) {
-		chronos_push_notification_driver_handle_mail_error(
+		push_notification_driver_chronos_handle_mail_error(
 			dconfig, mail, mail_uid,
 			"Unable to lookup Message-ID header field for uid");
 	} else if (key != NULL && *key != '\0') {
@@ -405,7 +405,7 @@ chronos_push_notification_driver_read_mail_body(
 	}
 
 	/* Make sure email contains relevant calendar data. */
-	if (!chronos_push_notification_driver_ical_search(dconfig, mail)) {
+	if (!push_notification_driver_chronos_ical_search(dconfig, mail)) {
 		e_debug(dconfig->event, "Mail does not contain calendar invite");
 		mail_free(&mail);
 		return FALSE;
@@ -415,7 +415,7 @@ chronos_push_notification_driver_read_mail_body(
 	struct istream *input;
 	struct message_size hdr_size, body_size;
 	if (mail_get_stream(mail, &hdr_size, &body_size, &input) < 0) {
-		chronos_push_notification_driver_handle_mail_error(
+		push_notification_driver_chronos_handle_mail_error(
 			dconfig, mail, mail_uid,
 			"Unable to get mail stream for uid");
 		mail_free(&mail);
@@ -463,9 +463,9 @@ chronos_push_notification_driver_read_mail_body(
 }
 
 static void
-chronos_push_notification_driver_http_callback(
+push_notification_driver_chronos_http_callback(
 	const struct http_response *response,
-	struct chronos_push_notification_driver_http_ctx *ctx)
+	struct push_notification_driver_chronos_http_ctx *ctx)
 {
 	switch (response->status / 100) {
 	case 2:
@@ -489,11 +489,11 @@ chronos_push_notification_driver_http_callback(
 }
 
 static void
-chronos_push_notification_driver_process_msg(
+push_notification_driver_chronos_process_msg(
 	struct push_notification_driver_txn *dtxn,
 	struct push_notification_txn_msg *msg)
 {
-	struct chronos_push_notification_driver_config *dconfig =
+	struct push_notification_driver_chronos_config *dconfig =
 		dtxn->duser->context;
 
 	/* Only push message on "MessageNew" events. */
@@ -517,7 +517,7 @@ chronos_push_notification_driver_process_msg(
 	struct mailbox_transaction_context *t = mailbox_transaction_begin(
 		mbox, 0, __func__);
 	string_t *body = str_new(http_ctx_pool, dconfig->msg_max_size);
-	if (!chronos_push_notification_driver_read_mail_body(t, dconfig,
+	if (!push_notification_driver_chronos_read_mail_body(t, dconfig,
 							     msg->uid, &body)) {
 		(void)mailbox_transaction_commit(&t);
 		mailbox_free(&mbox);
@@ -531,8 +531,8 @@ chronos_push_notification_driver_process_msg(
 	/* Setup context for http request. This is done to split http resources
 	   from the main handling of the push notification message resources,
 	   that are done in a synchronous manner. */
-	struct chronos_push_notification_driver_http_ctx *ctx = p_new(
-		http_ctx_pool, struct chronos_push_notification_driver_http_ctx, 1);
+	struct push_notification_driver_chronos_http_ctx *ctx = p_new(
+		http_ctx_pool, struct push_notification_driver_chronos_http_ctx, 1);
 	ctx->pool = http_ctx_pool;
 	ctx->event = event_create(dconfig->event);
 	event_add_category(ctx->event, push_notification_get_event_category());
@@ -541,7 +541,7 @@ chronos_push_notification_driver_process_msg(
 	/* Setup http request. */
 	struct http_client_request *http_req = http_client_request_url(
 		chronos_global->http_client, "PUT", dconfig->http_url,
-		chronos_push_notification_driver_http_callback, ctx);
+		push_notification_driver_chronos_http_callback, ctx);
 	http_client_request_set_event(http_req, dtxn->ptxn->event);
 	http_client_request_add_header(http_req, "Content-Type",
 				       "application/json; charset=utf-8");
@@ -564,33 +564,33 @@ chronos_push_notification_driver_process_msg(
 }
 
 static void
-chronos_push_notification_driver_deinit(
+push_notification_driver_chronos_deinit(
 	struct push_notification_driver_user *duser)
 {
-	struct chronos_push_notification_driver_config *dconfig = duser->context;
+	struct push_notification_driver_chronos_config *dconfig = duser->context;
 	event_unref(&dconfig->event);
 
-	chronos_push_notification_driver_chronos_user_deinit(dconfig->user);
-	chronos_push_notification_driver_global_unref();
+	push_notification_driver_chronos_chronos_user_deinit(dconfig->user);
+	push_notification_driver_chronos_global_unref();
 }
 
 static void
-chronos_push_notification_driver_cleanup(void)
+push_notification_driver_chronos_cleanup(void)
 {
-	chronos_push_notification_driver_global_unref();
+	push_notification_driver_chronos_global_unref();
 }
 
 /* Driver definition */
 
-extern struct push_notification_driver chronos_push_notification_driver;
+extern struct push_notification_driver push_notification_driver_chronos;
 
-struct push_notification_driver chronos_push_notification_driver = {
+struct push_notification_driver push_notification_driver_chronos = {
 	.name = "chronos",
 	.v = {
-		.init = chronos_push_notification_driver_init,
-		.begin_txn = chronos_push_notification_driver_begin_txn,
-		.process_msg = chronos_push_notification_driver_process_msg,
-		.deinit = chronos_push_notification_driver_deinit,
-		.cleanup = chronos_push_notification_driver_cleanup,
+		.init = push_notification_driver_chronos_init,
+		.begin_txn = push_notification_driver_chronos_begin_txn,
+		.process_msg = push_notification_driver_chronos_process_msg,
+		.deinit = push_notification_driver_chronos_deinit,
+		.cleanup = push_notification_driver_chronos_cleanup,
 	},
 };
