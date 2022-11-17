@@ -1,18 +1,18 @@
-m4_define([chronos_push_notification_plugin_VERSION],
+m4_define([push_notification_plugin_chronos_VERSION],
   m4_esyscmd_s([build-aux/git-version-gen]))
 
-m4_define([chronos_push_notification_plugin_ABI_VERSION],
+m4_define([push_notification_plugin_chronos_ABI_VERSION],
   m4_esyscmd_s([build-aux/git-abi-version-gen]))))
 
-m4_define([chronos_push_notification_plugin_TAR_VERSION],
+m4_define([push_notification_plugin_chronos_TAR_VERSION],
   m4_esyscmd_s([build-aux/git-tarname-version-gen]))))
 
 AC_PREREQ([2.69])
 
 AC_INIT([Chronos Push Notification Plugin],
-        [m4_defn([chronos_push_notification_plugin_VERSION])],
+        [m4_defn([push_notification_plugin_chronos_VERSION])],
         [dovecot@dovecot.org],
-        [m4_defn([chronos_push_notification_plugin_TAR_VERSION])])
+        [m4_defn([push_notification_plugin_chronos_TAR_VERSION])])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
