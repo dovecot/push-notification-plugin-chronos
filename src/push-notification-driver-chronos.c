@@ -167,44 +167,33 @@ push_notification_driver_chronos_init(
 		return -1;
 	}
 
+	dconfig->http_max_retries = DEFAULT_RETRY_COUNT;
 	config_item = hash_table_lookup(config->config, (const char *)"max_retries");
-	if ((config_item == NULL) ||
+	if ((config_item != NULL) &&
 	    (str_to_uint(config_item, &dconfig->http_max_retries) < 0)) {
-		if (config_item == NULL) {
-			config_item = "(unset)";
-		}
 		e_warning(dconfig->event,
 			  "Unable to parse setting for \"max_retries\" value: %s. "
 			  "Using default value: 1.", config_item);
-		dconfig->http_max_retries = DEFAULT_RETRY_COUNT;
 	}
 
+	dconfig->http_timeout_msecs = DEFAULT_TIMEOUT_MSECS;
 	config_item = hash_table_lookup(config->config, (const char *)"timeout");
-	if ((config_item == NULL) ||
+	if ((config_item != NULL) &&
 	    (settings_get_time_msecs(config_item, &dconfig->http_timeout_msecs, &error) < 0)) {
-		if (config_item == NULL) {
-			config_item = "(unset)";
-			error = "";
-		}
 		e_warning(dconfig->event,
 			  "Unable to parse setting for \"timeout\" value: %s. "
 			  "Using default value: %dms. %s",
 			  config_item, DEFAULT_TIMEOUT_MSECS, error);
-		dconfig->http_timeout_msecs = DEFAULT_TIMEOUT_MSECS;
 	}
 
+	dconfig->msg_max_size = DEFAULT_MSG_MAX_SIZE;
 	config_item = hash_table_lookup(config->config, (const char *)"msg_max_size");
-	if ((config_item == NULL) ||
+	if ((config_item != NULL) &&
 	    (settings_get_size(config_item, &dconfig->msg_max_size, &error) < 0)) {
-		if (config_item == NULL) {
-			config_item = "(unset)";
-			error = "";
-		}
 		e_warning(dconfig->event,
 			  "Unable to parse setting for \"msg_max_size\" value: %s. "
 			  "Using default value: %dB. %s",
 			  config_item, DEFAULT_MSG_MAX_SIZE, error);
-		dconfig->msg_max_size = DEFAULT_MSG_MAX_SIZE;
 	}
 
 	e_debug(dconfig->event,
