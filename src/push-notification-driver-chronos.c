@@ -350,9 +350,9 @@ push_notification_driver_chronos_handle_mail_error(
 	const char *errstr = mail_get_last_internal_error(mail, &error);
 
 	if (error == MAIL_ERROR_EXPUNGED)
-		e_info(dconfig->event, "%s %u: %s", prefix, mail_uid, errstr);
+		e_info(dconfig->event, "%s UID=%u: %s", prefix, mail_uid, errstr);
 	else
-		e_error(dconfig->event, "%s %u: %s", prefix, mail_uid, errstr);
+		e_error(dconfig->event, "%s UID=%u: %s", prefix, mail_uid, errstr);
 }
 
 static bool
