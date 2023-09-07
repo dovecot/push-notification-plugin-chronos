@@ -16,13 +16,16 @@
 #include "push-notification-event-messagenew.h"
 #include "push-notification-events.h"
 #include "push-notification-plugin.h"
+#include "push-notification-settings.h"
 #include "push-notification-txn-msg.h"
+#include "settings.h"
 #include "str-parse.h"
 #include "str.h"
 
+#include "push-notification-chronos-settings.h"
+
 /* Default values. */
 static const char *const default_events[] = { "MessageNew", NULL };
-#define DEFAULT_MSG_MAX_SIZE (1 * 1024 * 1024)
 
 /* Calendar invite search parameters. */
 #define CHRONOS_PN_ICAL_MIME_TYPE "text"
@@ -123,55 +126,49 @@ push_notification_driver_chronos_global_unref(void)
 
 static int
 push_notification_driver_chronos_init(
-	struct push_notification_driver_config *config,
-	struct mail_user *user, pool_t pool, void **context,
-	const char **error_r)
+		struct mail_user *user, pool_t pool, const char *name,
+		void **context, const char **error_r)
 {
 	push_notification_driver_chronos_init_chronos_user(user);
 
-	struct push_notification_driver_chronos_config *dconfig;
-	const char *config_item, *error;
+	struct push_notification_chronos_settings *chronos_settings;
+	if (settings_get_filter(user->event, PUSH_NOTIFICATION_SETTINGS_FILTER_NAME,
+				name, &push_notification_chronos_setting_parser_info,
+				0, &chronos_settings, error_r) < 0)
+		return -1;
 
+	struct push_notification_driver_chronos_config *dconfig;
 	dconfig = p_new(pool, struct push_notification_driver_chronos_config, 1);
 	dconfig->user = user;
 	dconfig->event = event_create(user->event);
 	event_add_category(dconfig->event, push_notification_get_event_category());
 	event_set_append_log_prefix(dconfig->event, "push-notification-chronos: ");
 
-	config_item = hash_table_lookup(config->config, (const char *)"url");
-	if (config_item == NULL) {
-		e_error(dconfig->event, "URL config missing");
+        /* The settings check is deliberately only validating a url if it is
+           given in the settings. Otherwise any file that does not contain
+           push-notification specific settings would fail the validation.
+	   Thus we need to check here, whether the parsed url exists. */
+        if (chronos_settings->parsed_url == NULL) {
+		*error_r = "push_notification_chronos_url is missing or empty";
 		event_unref(&dconfig->event);
-		*error_r = "Driver requires the url parameter";
+		settings_free(chronos_settings);
 		return -1;
 	}
 
-	if (http_url_parse(config_item, NULL, HTTP_URL_ALLOW_USERINFO_PART,
-			   pool, &dconfig->http_url, &error) < 0) {
-		event_unref(&dconfig->event);
-		*error_r = t_strdup_printf(
-			"Failed to parse Chronos Push Notification URL '%s': %s",
-			config_item, error);
-		return -1;
-	}
-
-	dconfig->msg_max_size = DEFAULT_MSG_MAX_SIZE;
-	config_item = hash_table_lookup(config->config, (const char *)"msg_max_size");
-	if ((config_item != NULL) &&
-	    (str_parse_get_size(config_item, &dconfig->msg_max_size, &error) < 0)) {
-		e_warning(dconfig->event,
-			  "Unable to parse setting for \"msg_max_size\" value: %s. "
-			  "Using default value: %dB. %s",
-			  config_item, DEFAULT_MSG_MAX_SIZE, error);
-	}
-
+	dconfig->http_url = http_url_clone_with_userinfo(
+			pool, chronos_settings->parsed_url);
+	dconfig->msg_max_size = chronos_settings->msg_max_size;
 	e_debug(dconfig->event,
 		"Using config: url=%s, msg max size = %"PRIuUOFF_T"B",
 		http_url_create(dconfig->http_url), dconfig->msg_max_size);
 
+	settings_free(chronos_settings);
+
 	if (chronos_global == NULL) {
-		if (!push_notification_driver_chronos_init_global(user))
+		if (!push_notification_driver_chronos_init_global(user)) {
+			event_unref(&dconfig->event);
 			return -1;
+		}
 	} else {
 		i_assert(chronos_global->refcount > 0);
 		++chronos_global->refcount;
