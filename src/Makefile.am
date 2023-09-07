@@ -3,11 +3,11 @@ AM_CPPFLAGS = \
 	$(LIBDOVECOT_PUSH_NOTIFICATION_INCLUDE)
 
 push_notification_plugin_chronos_sources = \
-  push-notification-plugin-chronos.c \
-  push-notification-driver-chronos.c
+	push-notification-plugin-chronos.c \
+	push-notification-driver-chronos.c
 
 noinst_HEADERS = \
-  push-notification-plugin-chronos.h
+	push-notification-plugin-chronos.h
 
 lib22_push_notification_chronos_plugin_la_LDFLAGS = -module -avoid-version
 
