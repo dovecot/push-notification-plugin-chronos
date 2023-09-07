@@ -23,8 +23,6 @@
 /* Default values. */
 static const char *const default_events[] = { "MessageNew", NULL };
 #define DEFAULT_MSG_MAX_SIZE (1 * 1024 * 1024)
-#define DEFAULT_RETRY_COUNT 1
-#define DEFAULT_TIMEOUT_MSECS 2000
 
 /* Calendar invite search parameters. */
 #define CHRONOS_PN_ICAL_MIME_TYPE "text"
@@ -64,8 +62,6 @@ struct push_notification_driver_chronos_config {
 	struct event *event;
 	struct http_url *http_url;
 	struct mail_user *user;
-	unsigned int http_max_retries;
-	unsigned int http_timeout_msecs;
 	uoff_t msg_max_size;
 };
 
@@ -91,23 +87,21 @@ push_notification_driver_chronos_chronos_user_deinit(struct mail_user *user)
 	hash_table_destroy(&chronos_user->dedup_table);
 }
 
-static void
-push_notification_driver_chronos_init_global(
-	struct push_notification_driver_chronos_config *config,
-	struct mail_user *user)
+static bool
+push_notification_driver_chronos_init_global(struct mail_user *user)
 {
+	const char *error;
 	chronos_global = i_new(struct push_notification_driver_chronos_global, 1);
+	if (http_client_init_auto(user->event, &chronos_global->http_client,
+				  &error) < 0) {
+		e_error(user->event, "Unable to initialize the HTTP client: %s",
+			error);
+		return FALSE;
+	}
 
-	static struct http_client_settings http_set;
-	http_client_settings_init(null_pool, &http_set);
-	/* This is going to use the first user's settings, but these
-	   are unlikely to change between users so it shouldn't matter
-	   much. */
-	http_set.max_attempts = config->http_max_retries + 1;
-	http_set.request_timeout_msecs = config->http_timeout_msecs;
-
-	chronos_global->http_client = http_client_init(&http_set, user->event);
 	chronos_global->refcount = 1;
+
+	return TRUE;
 }
 
 static void
@@ -161,26 +155,6 @@ push_notification_driver_chronos_init(
 		return -1;
 	}
 
-	dconfig->http_max_retries = DEFAULT_RETRY_COUNT;
-	config_item = hash_table_lookup(config->config, (const char *)"max_retries");
-	if ((config_item != NULL) &&
-	    (str_to_uint(config_item, &dconfig->http_max_retries) < 0)) {
-		e_warning(dconfig->event,
-			  "Unable to parse setting for \"max_retries\" value: %s. "
-			  "Using default value: 1.", config_item);
-	}
-
-	dconfig->http_timeout_msecs = DEFAULT_TIMEOUT_MSECS;
-	config_item = hash_table_lookup(config->config, (const char *)"timeout");
-	if ((config_item != NULL) &&
-	    (str_parse_get_interval_msecs(config_item, &dconfig->http_timeout_msecs,
-					  &error) < 0)) {
-		e_warning(dconfig->event,
-			  "Unable to parse setting for \"timeout\" value: %s. "
-			  "Using default value: %dms. %s",
-			  config_item, DEFAULT_TIMEOUT_MSECS, error);
-	}
-
 	dconfig->msg_max_size = DEFAULT_MSG_MAX_SIZE;
 	config_item = hash_table_lookup(config->config, (const char *)"msg_max_size");
 	if ((config_item != NULL) &&
@@ -192,13 +166,12 @@ push_notification_driver_chronos_init(
 	}
 
 	e_debug(dconfig->event,
-		"Using config: max retries = %u, timeout = %ums, "
-		"msg max size = %"PRIuUOFF_T"B",
-		dconfig->http_max_retries, dconfig->http_timeout_msecs,
-		dconfig->msg_max_size);
+		"Using config: url=%s, msg max size = %"PRIuUOFF_T"B",
+		http_url_create(dconfig->http_url), dconfig->msg_max_size);
 
 	if (chronos_global == NULL) {
-		push_notification_driver_chronos_init_global(dconfig, user);
+		if (!push_notification_driver_chronos_init_global(user))
+			return -1;
 	} else {
 		i_assert(chronos_global->refcount > 0);
 		++chronos_global->refcount;
