@@ -91,16 +91,27 @@ push_notification_driver_chronos_chronos_user_deinit(struct mail_user *user)
 }
 
 static bool
-push_notification_driver_chronos_init_global(struct mail_user *user)
+push_notification_driver_chronos_init_global(struct mail_user *user,
+					     const char *name)
 {
 	const char *error;
 	chronos_global = i_new(struct push_notification_driver_chronos_global, 1);
-	if (http_client_init_auto(user->event, &chronos_global->http_client,
+
+	struct event *event = event_create(user->event);
+	char *filter_name = p_strdup_printf(
+			event_get_pool(event), "%s/%s",
+			PUSH_NOTIFICATION_SETTINGS_FILTER_NAME,
+			settings_section_escape(name));
+	event_set_ptr(event, SETTINGS_EVENT_FILTER_NAME, filter_name);
+
+	if (http_client_init_auto(event, &chronos_global->http_client,
 				  &error) < 0) {
 		e_error(user->event, "Unable to initialize the HTTP client: %s",
 			error);
+		event_unref(&event);
 		return FALSE;
 	}
+	event_unref(&event);
 
 	chronos_global->refcount = 1;
 
@@ -165,7 +176,7 @@ push_notification_driver_chronos_init(
 	settings_free(chronos_settings);
 
 	if (chronos_global == NULL) {
-		if (!push_notification_driver_chronos_init_global(user)) {
+		if (!push_notification_driver_chronos_init_global(user, name)) {
 			event_unref(&dconfig->event);
 			return -1;
 		}
