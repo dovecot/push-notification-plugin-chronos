@@ -8,7 +8,7 @@
 #include "ioloop.h"
 #include "iostream-ssl.h"
 #include "istream.h"
-#include "json-parser.h"
+#include "json-ostream.h"
 #include "mail-storage-private.h"
 #include "message-part-data.h"
 #include "message-size.h"
@@ -538,14 +538,16 @@ push_notification_driver_chronos_process_msg(
 				       "application/json; charset=utf-8");
 
 	/* Create json payload to send. */
+	struct json_ostream *json_output;
 	ctx->json = str_new(ctx->pool, dconfig->msg_max_size);
-	str_append(ctx->json, "{\"user\":\"");
-	json_append_escaped(ctx->json, dtxn->ptxn->muser->username);
-	str_append(ctx->json, "\",\"event\":\"messageNew\",\"folder\":\"");
-	json_append_escaped(ctx->json, msg->mailbox);
-	str_append(ctx->json, "\",\"body\":\"");
-	json_append_escaped(ctx->json, str_c(body));
-	str_append(ctx->json, "\"}");
+	json_output = json_ostream_create_str(ctx->json, 0);
+	json_ostream_ndescend_object(json_output, NULL);
+	json_ostream_nwrite_string(json_output, "user",
+				   dtxn->ptxn->muser->username);
+	json_ostream_nwrite_string(json_output, "event", "messageNew");
+	json_ostream_nwrite_string(json_output, "body", str_c(body));
+	json_ostream_nascend_object(json_output);
+	json_ostream_nfinish_destroy(&json_output);
 
 	/* Set payload to http request and press send. */
 	ctx->payload = i_stream_create_from_data(str_data(ctx->json),
