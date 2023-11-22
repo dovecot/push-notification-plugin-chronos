@@ -541,6 +541,7 @@ push_notification_driver_chronos_process_msg(
 	json_ostream_ndescend_object(json_output, NULL);
 	json_ostream_nwrite_string(json_output, "user",
 				   dtxn->ptxn->muser->username);
+	json_ostream_nwrite_string(json_output, "folder", msg->mailbox);
 	json_ostream_nwrite_string(json_output, "event", "messageNew");
 	json_ostream_nwrite_string(json_output, "body", str_c(body));
 	json_ostream_nascend_object(json_output);
