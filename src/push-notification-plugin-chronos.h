@@ -1,5 +1,3 @@
-/* Copyright (c) 2022 Open-Xchange Software GmbH, see the included COPYING file */
-
 #ifndef PUSH_NOTIFICATION_PLUGIN_CHRONOS_H
 #define PUSH_NOTIFICATION_PLUGIN_CHRONOS_H
 
