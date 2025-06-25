@@ -3,7 +3,7 @@ SUBDIRS = src
 ACLOCAL_AMFLAGS = -I m4
 
 EXTRA_DIST = \
-	COPYING \
+	LICENSE \
 	README.md \
 	version
 
