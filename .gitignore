@@ -72,7 +72,7 @@ stamp-h1
 dummy-config.h
 dummy-config.h.in
 dummy-config.h.in~
-/version
+/version.txt
 stamp.h
 
 # dovecot specific auxiliary scripts
