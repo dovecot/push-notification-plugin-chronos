@@ -19,6 +19,8 @@ static const struct setting_define push_notification_chronos_setting_defines[] =
 	DEF(STR, url),
 	DEF(SIZE, msg_max_size),
 
+	{ .type = SET_FILTER_NAME, .key = PUSH_NOTIFICATION_CHRONOS_FILTER_NAME, },
+
 	SETTING_DEFINE_LIST_END,
 };
 

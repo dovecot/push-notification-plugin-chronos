@@ -1,6 +1,10 @@
 #ifndef PUSH_NOTIFICATION_CHRONOS_SETTINGS_H
 #define PUSH_NOTIFICATION_CHRONOS_SETTINGS_H
 
+/* <settings checks> */
+#define PUSH_NOTIFICATION_CHRONOS_FILTER_NAME "push_notification_chronos"
+/* </settings checks> */
+
 struct push_notification_chronos_settings {
 	pool_t pool;
 
