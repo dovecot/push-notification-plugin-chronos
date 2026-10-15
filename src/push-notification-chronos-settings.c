@@ -45,6 +45,16 @@ const struct setting_parser_info *push_notification_chronos_settings_set_infos[]
 	NULL,
 };
 
+static const struct setting_plugin_info push_notification_chronos_plugin_info = {
+	.plugin = "lib22_push_notification_chronos_plugin",
+	.required_plugins = (const char *const []) { "push_notification", NULL },
+};
+
+const struct setting_plugin_info *push_notification_chronos_settings_plugin_infos[] = {
+	&push_notification_chronos_plugin_info,
+	NULL,
+};
+
 const char *push_notification_chronos_settings_version = DOVECOT_ABI_VERSION;
 
 static bool

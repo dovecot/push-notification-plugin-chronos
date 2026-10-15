@@ -8,8 +8,6 @@
 /* Plugin interface */
 
 const char *push_notification_chronos_plugin_version = DOVECOT_ABI_VERSION;
-const char *push_notification_chronos_plugin_dependencies[] =
-	{ "push_notification", NULL };
 
 extern struct push_notification_driver push_notification_driver_chronos;
 
